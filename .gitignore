@@ -1,0 +1,14 @@
+venv/
+__pycache__/
+*.pyc
+*.pkl
+.DS_Store
+datasets/*.csv
+.vscode/
+.idea/
+
+# SOC runtime data
+*.db
+*.db-wal
+*.db-shm
+.pytest_cache/

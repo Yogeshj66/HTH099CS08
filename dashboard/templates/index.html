@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Signal-Fused SOC Dashboard</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="container">
+
+  <header class="topbar">
+    <div>
+      <h1>Signal-Fused SOC Dashboard</h1>
+      <p class="subtitle">Wi-Fi, USB and Bluetooth trust signals fused with SOC events into prioritized incidents</p>
+      <p class="guide"><b>How to read this:</b> 1 Pick a scenario &rarr; 2 watch events arrive in the live feed &rarr; 3 related events become an incident, ranked by priority &rarr; 4 open it to see why &rarr; 5 acknowledge or resolve it.</p>
+    </div>
+    <div class="topbar-controls">
+      <div class="segmented" role="group" aria-label="Data mode">
+        <button id="mode-simulation" type="button">Simulation</button>
+        <button id="mode-live" type="button">Live</button>
+      </div>
+      <button id="btn-reset" class="btn btn-ghost" type="button">Reset demo</button>
+    </div>
+  </header>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <section class="panel scenario-bar" aria-label="Scenarios">
+    <span class="scenario-label">Run a scenario</span>
+    <div class="scenario-buttons" id="scenario-buttons">
+      <button class="btn" data-scenario="benign" type="button">Normal activity</button>
+      <button class="btn" data-scenario="credential_attack" type="button">Credential attack</button>
+      <button class="btn" data-scenario="network_recon" type="button">Network recon</button>
+      <button class="btn" data-scenario="endpoint_compromise" type="button">Endpoint compromise</button>
+      <button class="btn btn-primary" data-scenario="coordinated_intrusion" type="button">Coordinated intrusion</button>
+      <button class="btn btn-ghost" data-scenario="random" type="button">Random simulation</button>
+      <button class="btn btn-ghost" id="btn-stop" type="button">Stop</button>
+      <button class="btn btn-demo" id="btn-demo" type="button">Run guided demo</button>
+    </div>
+    <span class="scenario-status" id="scenario-status">No scenario running</span>
+  </section>
+
+  <section class="panel demo-panel" id="demo-panel" hidden aria-live="polite">
+    <div class="demo-head">
+      <h2>Guided demo: Coordinated Intrusion</h2>
+      <button class="btn btn-ghost" id="btn-demo-stop" type="button">Stop demo</button>
+    </div>
+    <ol class="demo-steps" id="demo-steps"></ol>
+  </section>
+
+  <section class="kpis" id="kpis" aria-label="Key numbers">
+    <div class="kpi kpi-trust" id="score-card">
+      <div class="kpi-label">Unified Trust Score</div>
+      <div class="kpi-value" id="score-number">--</div>
+      <div class="score-status" id="score-status">Loading...</div>
+    </div>
+    <div class="kpi"><div class="kpi-label">Active incidents</div><div class="kpi-value" id="kpi-active">0</div></div>
+    <div class="kpi sev-critical-t"><div class="kpi-label">Critical</div><div class="kpi-value" id="kpi-critical">0</div></div>
+    <div class="kpi sev-high-t"><div class="kpi-label">High</div><div class="kpi-value" id="kpi-high">0</div></div>
+    <div class="kpi sev-medium-t"><div class="kpi-label">Medium</div><div class="kpi-value" id="kpi-medium">0</div></div>
+    <div class="kpi sev-low-t"><div class="kpi-label">Low</div><div class="kpi-value" id="kpi-low">0</div></div>
+    <div class="kpi"><div class="kpi-label">Analyst capacity</div><div class="kpi-value" id="kpi-capacity">0</div></div>
+    <div class="kpi"><div class="kpi-label">Analysts available</div><div class="kpi-value" id="kpi-available">0</div></div>
+  </section>
+
+  <div class="grid-main">
+    <section class="panel">
+      <h2>Incidents in priority order</h2>
+      <p class="hint">#1 is worked first. Priority combines severity, confidence, host importance, number of related events and waiting time. Select an incident to open it below.</p>
+      <div id="incident-list" class="incident-list"></div>
+    </section>
+
+    <section class="panel">
+      <h2 id="feed-title">Live event feed</h2>
+      <p class="hint" id="feed-hint">Every event and every new incident, newest first.</p>
+      <ul class="feed" id="feed"></ul>
+    </section>
+  </div>
+
+  <div class="grid-main">
+    <section class="panel">
+      <h2>Analyst queue</h2>
+      <p class="hint" id="queue-hint">Capacity limits how many incidents are actively worked.</p>
+      <div id="analyst-slots" class="analyst-slots"></div>
+      <div class="table-wrap">
+        <table class="table" id="queue-table">
+          <thead><tr><th>Rank</th><th>Incident</th><th>Severity</th><th>Priority</th><th>Analyst</th><th>Status</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Incident / alert distribution</h2>
+      <p class="hint">Left: open incidents by severity. Right: alerts (suspicious events) by source.</p>
+      <div class="pies">
+        <div class="pie-box"><h3>Incidents by severity</h3><div id="pie-incidents"></div></div>
+        <div class="pie-box"><h3>Alerts by source</h3><div id="pie-alerts"></div></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel detail" id="detail">
+    <div class="detail-head" id="detail-head"></div>
+    <p class="plain" id="plain"></p>
+    <div class="detail-grid">
+      <div>
+        <h3>Incident timeline</h3>
+        <ol class="timeline" id="timeline"></ol>
+      </div>
+      <div>
+        <h3>Why this score</h3>
+        <div id="explanation"></div>
+      </div>
+      <div>
+        <h3>Recommended response</h3>
+        <ul class="actions" id="actions"></ul>
+        <p class="hint" id="response-note"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Signal sources</h2>
+    <p class="hint">Orange outline = suspicious activity in the last 15 minutes. Wi-Fi, USB and Bluetooth show their Trust sub-score.</p>
+    <div class="signals" id="signals-grid"></div>
+  </section>
+
+</div>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
